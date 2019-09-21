@@ -1,0 +1,74 @@
+version: '3.4'
+
+services:
+  nginx:
+    restart: unless-stopped
+    image: nginx:alpine
+    container_name: decv_nginx_dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/nginx_dev.conf:/etc/nginx/conf.d/default.conf
+      - ./config/certs:/ssl_cert
+      - ./storage/logs/nginx:/var/log/nginx
+      - ./storage/static:/var/www/static
+      - ./config/favicons:/var/www/static/favicons
+      - ./storage/media:/var/www/media
+
+    depends_on:
+      - nuxt
+      - tornado
+
+  nuxt:
+    image: decv_nuxt:latest
+    build:
+      context: .
+      dockerfile: ./DockerfileNuxt
+      target: development-env
+    container_name: decv_nuxt_dev
+    restart: unless-stopped
+    expose:
+      - "3000"
+    working_dir: /src
+    command:
+      "npm run dev"
+
+    volumes:
+      - ./src/nuxt:/src
+      - /src/node_modules
+      - ./storage/logs/nuxt:/root/.npm/_logs/
+    environment:
+      DOMAIN_NAME: https://localhost
+
+    depends_on:
+      - tornado
+
+  tornado:
+    restart: unless-stopped
+    image: decv_tornado:latest
+    build:
+      context: .
+      dockerfile: ./DockerfileTornado
+      target: development-env
+    container_name: decv_tornado_dev
+    working_dir: /src/tornado
+    command: /bin/sh -c "python main.py"
+    volumes:
+      - ./src/tornado:/src/tornado
+      - ./storage/update:/update
+      - ./storage/data:/data
+      - ./storage/logs/tornado:/var/log/tornado
+    environment:
+      DEBUG: ${DEBUG}
+    expose:
+      - "8888"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 20M

@@ -1,0 +1,85 @@
+FROM python:3.7.4-alpine as base
+
+ENV PYTHONUNBUFFERED 1
+
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories &&\
+    echo http://mirrors.dotsrc.org/alpine/v3.8/main/ >> /etc/apk/repositories && \
+    apk add --no-cache \
+        libjpeg \
+		openjpeg \
+        tiff \
+        openssl \
+        gnupg &&\
+    pip install \
+        --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
+        --upgrade pip && \
+    rm -rf \
+        /root/.cache \
+        /tmp/*
+
+
+FROM base as builder
+
+RUN mkdir /config
+ADD /config/requirements.txt /config/
+
+RUN mkdir /install
+WORKDIR /install
+
+RUN echo "**** install build packages ****" && \
+    apk add --no-cache --virtual=build-dependencies \
+        autoconf \
+        automake \
+        freetype-dev \
+        g++ \
+        gcc \
+        jpeg-dev \
+        lcms2-dev \
+        libffi-dev \
+        libpng-dev \
+        libwebp-dev \
+        linux-headers \
+        make \
+        openssl-dev \
+        openjpeg-dev \
+        tiff-dev \
+        zlib-dev && \
+    pip install \
+        --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
+        --install-option="--prefix=/install" \
+        -r /config/requirements.txt && \
+    apk del --purge \
+	    build-dependencies && \
+    rm -rf \
+        /root/.cache \
+        /tmp/*
+
+
+FROM base as development-env
+
+COPY --from=builder /install /usr/local
+
+RUN apk add --no-cache --virtual=build-dependencies \
+        g++ \
+        gcc &&\
+    pip install \
+        --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
+        mypy==0.720 && \
+    apk del --purge \
+	    build-dependencies && \
+    rm -rf \
+        /root/.cache \
+        /tmp/* && \
+    mkdir -p /src/tornado
+
+
+WORKDIR /src/tornado
+
+
+FROM base as production
+
+COPY --from=builder /install /usr/local
+COPY /src/tornado /src/tornado
+
+WORKDIR /src/tornado
+
