@@ -2,7 +2,7 @@ from tornado.web import url
 from handlers import *
 
 handlers = [
-	url(r"/api/data/([^/]+)?", DataHandler),
+	url(r"/api/data/([^/]+)?/([^/]+)?", DataHandler),
 	# url(r"/files/upload/update", StreamHandler),
 	# url(r"/files/upload/license", UploadLicenseHandler),
 	# url(r"/files/upload/restore", RestoreBackupHandler),

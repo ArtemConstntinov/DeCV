@@ -36,7 +36,7 @@
 					</v-alert>
 				</template>
 				<template v-else v-for="(v, k) in val">
-					<span :key="k + Date.now()">{{ k }}</span>:&nbsp;
+					<span class="subtitle-2 text-capitalize" :key="k + Date.now()">{{ k }}</span>:&nbsp;
 					<span :key="k + Date.now()">{{ v }}</span><br :key="k + Date.now()">
 				</template>
 			</v-card-text>
